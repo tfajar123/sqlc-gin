@@ -19,4 +19,6 @@ func RegisterRoutes(r *gin.Engine) {
 	r.POST("/posts", controller.CreatePost )
 	r.PUT("/posts/:id", controller.UpdatePost )
 	r.DELETE("/posts/:id", controller.DeletePost )
+
+	r.Static("/uploads", "./uploads")
 }

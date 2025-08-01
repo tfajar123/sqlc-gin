@@ -4,23 +4,15 @@ import (
 	db "database-migrate/db/sqlc"
 	"database-migrate/pkg/dbconn"
 	"database/sql"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
-type Post struct {
-	Title   string `json:"title" binding:"required"`
-	Content string `json:"content" binding:"required"`
-	Image   sql.NullString `json:"image"`
-	UserID  int32  `json:"user_id" binding:"required"`
-}
-type UpdatePostInput struct {
-    Title   string  `json:"title" binding:"required"`
-    Content string  `json:"content" binding:"required"`
-    Image   *string `json:"image"` // opsional
-}
 
 
 func GetPostByID(c *gin.Context) {
@@ -73,16 +65,37 @@ func GetListPosts(c *gin.Context) {
 func CreatePost(c *gin.Context) {
 	queries := db.New(dbconn.DB)
 
-	var input Post
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid input"})
+	title := c.PostForm("title")
+	content := c.PostForm("content")
+	userID := c.PostForm("user_id")
+
+	uid, err := strconv.Atoi(userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user_id"})
 		return
 	}
-	user, err := queries.CreatePost(c, db.CreatePostParams{
-		Title:   input.Title,
-		Content: input.Content,
-		Image:   input.Image,
-		UserID:  input.UserID,
+
+	file, err := c.FormFile("image")
+	var filename string
+	if err == nil {
+		filename = fmt.Sprintf("uploads/%d_%s", time.Now().UnixNano(), file.Filename)
+
+		if err := c.SaveUploadedFile(file, filename); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+	}
+
+	image := sql.NullString{
+		String: filename,
+		Valid: filename != "",
+	}
+
+	post, err := queries.CreatePost(c, db.CreatePostParams{
+		Title:   title,
+		Content: content,
+		Image:   image,
+		UserID:  int32(uid),
 	})
 
 	if err != nil {
@@ -90,7 +103,7 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, post)
 }
 
 func UpdatePost(c *gin.Context) {
@@ -101,23 +114,46 @@ func UpdatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
 		return
 	}
-	var input UpdatePostInput
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+
+	oldPost, err := queries.GetPostByID(c, int32(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "post not found"})
 		return
 	}
 
+	title := c.PostForm("title")
+	content := c.PostForm("content")
+	// userID := c.PostForm("user_id")
+
+	file, err := c.FormFile("image")
 	var image sql.NullString
-	if input.Image != nil {
-		image = sql.NullString{String: *input.Image, Valid: true}
+	if err == nil {
+		filename := fmt.Sprintf("uploads/%d_%s", time.Now().UnixNano(), file.Filename)
+
+		if err := c.SaveUploadedFile(file, filename); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+
+		image = sql.NullString{
+			String: filename,
+			Valid: true,
+		}
+
+		if oldPost.Image.Valid {
+			if err := os.Remove(oldPost.Image.String); err != nil {
+				log.Println("failed to remove old image:", err)
+			}
+		}
 	} else {
-		image = sql.NullString{Valid: false}
+		image = oldPost.Image
 	}
 
-	user, err := queries.UpdatePost(c, db.UpdatePostParams{
+	post, err := queries.UpdatePost(c, db.UpdatePostParams{
 		ID:      int32(id),
-		Title:   input.Title,
-		Content: input.Content,
+		Title:   title,
+		Content: content,
 		Image:   image,
 	})
 
@@ -126,7 +162,7 @@ func UpdatePost(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, post)
 }
 
 func DeletePost(c *gin.Context) {
