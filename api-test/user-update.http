@@ -1,7 +1,7 @@
-PUT http://localhost:8080/users/1
+PUT http://localhost:8080/users/2
 content-type: application/json
 
 {
     "name": "test",
-    "email": "example@example.com"
+    "email": "example1@example.com"
 }

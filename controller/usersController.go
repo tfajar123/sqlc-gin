@@ -11,8 +11,8 @@ import (
 )
 
 type User struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"required"`
 }
 
 func GetUser(c *gin.Context) {
@@ -101,7 +101,7 @@ func DeleteUser(c *gin.Context) {
 
     err = queries.DeleteUser(c, int32(id))
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"message": "user not deleted"})
+        c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
         return
     }
 

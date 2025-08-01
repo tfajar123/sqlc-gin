@@ -7,20 +7,27 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createPost = `-- name: CreatePost :one
-INSERT INTO posts (title, content, user_id) VALUES ($1, $2, $3) RETURNING id, title, content, image, user_id, created_at, updated_at
+INSERT INTO posts (title, content, image,  user_id) VALUES ($1, $2, $3, $4) RETURNING id, title, content, image, user_id, created_at, updated_at
 `
 
 type CreatePostParams struct {
 	Title   string
 	Content string
+	Image   sql.NullString
 	UserID  int32
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
-	row := q.db.QueryRowContext(ctx, createPost, arg.Title, arg.Content, arg.UserID)
+	row := q.db.QueryRowContext(ctx, createPost,
+		arg.Title,
+		arg.Content,
+		arg.Image,
+		arg.UserID,
+	)
 	var i Post
 	err := row.Scan(
 		&i.ID,
@@ -75,7 +82,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getListPosts = `-- name: GetListPosts :many
-SELECT id, title, content, image, user_id, created_at, updated_at FROM posts
+SELECT id, title, content, image, user_id, created_at, updated_at FROM posts ORDER BY id
 `
 
 func (q *Queries) GetListPosts(ctx context.Context) ([]Post, error) {
@@ -214,17 +221,23 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
 }
 
 const updatePost = `-- name: UpdatePost :one
-UPDATE posts SET title = $2, content = $3 WHERE id = $1 RETURNING id, title, content, image, user_id, created_at, updated_at
+UPDATE posts SET title = $2, content = $3, image = $4, updated_at = now() WHERE id = $1 RETURNING id, title, content, image, user_id, created_at, updated_at
 `
 
 type UpdatePostParams struct {
 	ID      int32
 	Title   string
 	Content string
+	Image   sql.NullString
 }
 
 func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) (Post, error) {
-	row := q.db.QueryRowContext(ctx, updatePost, arg.ID, arg.Title, arg.Content)
+	row := q.db.QueryRowContext(ctx, updatePost,
+		arg.ID,
+		arg.Title,
+		arg.Content,
+		arg.Image,
+	)
 	var i Post
 	err := row.Scan(
 		&i.ID,
@@ -239,7 +252,7 @@ func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) (Post, e
 }
 
 const updateUser = `-- name: UpdateUser :one
-UPDATE users SET name = $2, email = $3 WHERE id = $1 RETURNING id, name, email, created_at, updated_at
+UPDATE users SET name = $2, email = $3, updated_at = now() WHERE id = $1 RETURNING id, name, email, created_at, updated_at
 `
 
 type UpdateUserParams struct {

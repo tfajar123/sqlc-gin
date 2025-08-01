@@ -1,0 +1,2 @@
+GET http://localhost:8080/posts/user/8
+content-type: application/json

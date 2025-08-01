@@ -1,0 +1,7 @@
+PUT http://localhost:8080/posts/11
+content-type: application/json
+
+{
+    "title": "test12",
+    "content": "test12"
+}
