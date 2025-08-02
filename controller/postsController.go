@@ -65,16 +65,20 @@ func GetListPosts(c *gin.Context) {
 func CreatePost(c *gin.Context) {
 	queries := db.New(dbconn.DB)
 
-	title := c.PostForm("title")
-	content := c.PostForm("content")
-	userID := c.PostForm("user_id")
-
-	uid, err := strconv.Atoi(userID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user_id"})
+	userIDInterface, exist := c.Get("user_id")
+	
+	if !exist {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "user_id not found"})
 		return
 	}
-
+	
+	userID, ok := userIDInterface.(int32)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user_id"})
+	}
+	
+	title := c.PostForm("title")
+	content := c.PostForm("content")
 	file, err := c.FormFile("image")
 	var filename string
 	if err == nil {
@@ -95,7 +99,7 @@ func CreatePost(c *gin.Context) {
 		Title:   title,
 		Content: content,
 		Image:   image,
-		UserID:  int32(uid),
+		UserID:  userID,
 	})
 
 	if err != nil {
@@ -108,6 +112,21 @@ func CreatePost(c *gin.Context) {
 
 func UpdatePost(c *gin.Context) {
 	queries := db.New(dbconn.DB)
+
+	userIDInterface, exist := c.Get("user_id")
+	
+	if !exist {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "user_id not found"})
+		return
+	}
+	
+	userID, ok := userIDInterface.(int32)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user_id"})
+	}
+
+	
+
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -115,6 +134,10 @@ func UpdatePost(c *gin.Context) {
 		return
 	}
 
+	if userID != int32(id) {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "You are not Allowed to update this post"})
+		return
+	}
 
 	oldPost, err := queries.GetPostByID(c, int32(id))
 	if err != nil {
@@ -124,7 +147,6 @@ func UpdatePost(c *gin.Context) {
 
 	title := c.PostForm("title")
 	content := c.PostForm("content")
-	// userID := c.PostForm("user_id")
 
 	file, err := c.FormFile("image")
 	var image sql.NullString

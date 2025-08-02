@@ -1,2 +1,3 @@
-GET http://localhost:8080/posts/user/8
+GET http://localhost:8080/posts/user/5
 content-type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QxMjNAZXhhbXBsZS5jb20iLCJleHAiOjE3NTQxMjQ0NDQsInVzZXJfaWQiOjV9.LM2xPHRuCjdrUWIUkSdrvXCN5x39i6FGxDlWDjHYKRQ

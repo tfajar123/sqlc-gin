@@ -1,7 +1,9 @@
-PUT http://localhost:8080/users/2
+PUT http://localhost:8080/users/6
 content-type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3Rhc2RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTQxMjUzOTcsInVzZXJfaWQiOjZ9.4mJorrYrRNFENFtakUCW-NTfza-ZLM7MAmFZsYDaHn4
 
 {
-    "name": "test",
-    "email": "example1@example.com"
+    "name": "asd",
+    "email": "asd@asd.com",
+    "password": "asdasd"
 }
