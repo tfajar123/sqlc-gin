@@ -134,19 +134,27 @@ func UpdatePost(c *gin.Context) {
 		return
 	}
 
-	if userID != int32(id) {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "You are not Allowed to update this post"})
-		return
-	}
-
+	
 	oldPost, err := queries.GetPostByID(c, int32(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "post not found"})
 		return
 	}
+	
+	if userID != oldPost.UserID {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "You are not Allowed to update this post"})
+		return
+	}
+	
+	title := oldPost.Title
+	if c.PostForm("title") != "" {
+		title = c.PostForm("title")
+	}
 
-	title := c.PostForm("title")
-	content := c.PostForm("content")
+	content := oldPost.Content
+	if c.PostForm("content") != "" {
+		content = c.PostForm("content")
+	}
 
 	file, err := c.FormFile("image")
 	var image sql.NullString
